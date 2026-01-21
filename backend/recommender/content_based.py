@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-def content_based_recommendation(
+def content_based_recommendations(
     data: pd.DataFrame,
     item_name: str,
     top_n: int = 10

@@ -1,6 +1,6 @@
 import pandas as pd
 
-def get_top_rated_items(data: pd.DataFrame, top_n: int = 10):
+def rating_based_recommendations(data: pd.DataFrame, top_n: int = 10):
     avg = (
         data.groupby(["Name", "ReviewCount", "Brand", "ImageURL"])["Rating"]
         .mean()
