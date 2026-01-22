@@ -1,13 +1,5 @@
 pandas
 numpy
 scikit-learn
-fastapi
-uvicorn
 streamlit
-requests
-
-#    cd backend
-#    uvicorn main:app --reload
-
-#    cd frontend
-#    streamlit run app.py
+Pillow

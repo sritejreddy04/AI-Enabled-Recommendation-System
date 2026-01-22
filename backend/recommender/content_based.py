@@ -4,30 +4,37 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 def content_based_recommendation(
     data: pd.DataFrame,
-    item_name: str,
-    top_n: int = 10
-):
-    # 🔹 Keyword fallback
-    matches = data[
-        data["Name"].str.contains(item_name, case=False, na=False) |
-        data["Tags"].str.contains(item_name, case=False, na=False)
-    ]
+    query: str,
+    top_n: int = 12
+) -> pd.DataFrame:
 
-    if matches.empty:
+    if not query:
         return pd.DataFrame()
 
-    # Use first best match as seed
-    seed_index = matches.index[0]
+    query = query.lower().strip()
 
-    tfidf = TfidfVectorizer(stop_words="english")
-    tfidf_matrix = tfidf.fit_transform(data["Tags"])
+    combined_text = (
+        data["Name"] + " " +
+        data["Category"] + " " +
+        data["Tags"] + " " +
+        data["Description"]
+    ).str.lower()
 
-    similarity = cosine_similarity(tfidf_matrix, tfidf_matrix)
-    scores = list(enumerate(similarity[seed_index]))
-    scores = sorted(scores, key=lambda x: x[1], reverse=True)
+    # FIX: no regex warning
+    mask = combined_text.str.contains(query, regex=False, na=False)
+    matched = data[mask]
 
-    indices = [i[0] for i in scores[:top_n]]
+    if matched.empty:
+        return pd.DataFrame()
 
-    return data.iloc[indices][
-        ["Name", "ReviewCount", "Brand", "ImageURL", "Rating"]
-    ].reset_index(drop=True)
+    vectorizer = TfidfVectorizer(stop_words="english")
+    tfidf_matrix = vectorizer.fit_transform(combined_text)
+
+    idx = matched.index[0]
+    similarity = cosine_similarity(
+        tfidf_matrix[idx], tfidf_matrix
+    ).flatten()
+
+    top_indices = similarity.argsort()[::-1][1:top_n + 1]
+
+    return data.iloc[top_indices].reset_index(drop=True)
