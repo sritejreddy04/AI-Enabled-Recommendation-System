@@ -1,7 +1,4 @@
 import streamlit as st
-import pandas as pd
-
-# Backend imports
 from backend.recommender import (
     process_data,
     content_based_recommendation,
@@ -9,28 +6,21 @@ from backend.recommender import (
     hybrid_recommendation
 )
 
-# -------------------------------------------------
-# PAGE CONFIG
-# -------------------------------------------------
+# ---------------- PAGE CONFIG ----------------
 st.set_page_config(
     page_title="AI-Enabled Recommendation Engine",
     layout="wide"
 )
 
-# -------------------------------------------------
-# LOAD DATA (CACHED)
-# -------------------------------------------------
-@st.cache_data(show_spinner=False)
+# ---------------- LOAD DATA ----------------
+@st.cache_data
 def load_data():
     return process_data("data/cleaned_data.csv")
 
 data = load_data()
 
-# -------------------------------------------------
-# SIDEBAR – USER PROFILE
-# -------------------------------------------------
+# ---------------- SIDEBAR ----------------
 st.sidebar.title("User Profile")
-
 user_id = st.sidebar.number_input(
     "Login with User ID (0 for Guest)",
     min_value=0,
@@ -38,23 +28,14 @@ user_id = st.sidebar.number_input(
     value=0
 )
 
-# -------------------------------------------------
-# MAIN TITLE
-# -------------------------------------------------
+# ---------------- MAIN UI ----------------
 st.title("🛒 AI-Enabled Recommendation Engine")
 
-# -------------------------------------------------
-# SEARCH BAR
-# -------------------------------------------------
 query = st.text_input(
     "Search for a product name or keyword to see similar items:"
 )
 
-# -------------------------------------------------
-# RECOMMENDATION LOGIC
-# -------------------------------------------------
-results = pd.DataFrame()
-
+# ---------------- LOGIC ----------------
 if query:
     st.subheader(f"🔍 Results for '{query}'")
     results = content_based_recommendation(data, query)
@@ -67,19 +48,15 @@ else:
     st.subheader(f"👋 Welcome Back, User {user_id}")
     results = hybrid_recommendation(data, user_id)
 
-# -------------------------------------------------
-# DISPLAY RESULTS
-# -------------------------------------------------
+# ---------------- DISPLAY ----------------
 if results.empty:
-    st.warning("No recommendations found.")
+    st.warning("No products found.")
 else:
     cols = st.columns(4)
 
     for i, row in enumerate(results.itertuples()):
         with cols[i % 4]:
-            # ✅ STREAMLIT CLOUD SAFE IMAGE RENDERING
-            st.image(row.ImageURL, use_container_width=True)
-
+            st.image(row.ImageURL)   # ✅ FIXED (NO width arg)
             st.markdown(f"**{row.Name}**")
             st.caption(row.Brand)
             st.write(f"⭐ {row.Rating} | 📝 {row.ReviewCount}")
