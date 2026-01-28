@@ -1,18 +1,55 @@
 import pandas as pd
+import numpy as np
 
-def process_data(csv_path: str) -> pd.DataFrame:
-    df = pd.read_csv(csv_path)
+def process_data(data: pd.DataFrame) -> pd.DataFrame:
+    # Replace invalid values
+    data['ProdID'] = data['ProdID'].replace(-2147483648, np.nan)
+    data['ID'] = data['ID'].replace(-2147483648, np.nan)
 
-    # Drop critical missing fields
-    df = df.dropna(subset=["Name", "ImageURL", "Rating"])
+    # Convert to numeric
+    data['ID'] = pd.to_numeric(data['ID'], errors='coerce')
+    data['ProdID'] = pd.to_numeric(data['ProdID'], errors='coerce')
 
-    # Remove zero or negative ratings
-    df = df[df["Rating"] > 0]
+    # Drop invalid rows
+    data = data.dropna(subset=['ID', 'ProdID'])
+    data = data[(data['ID'] != 0) & (data['ProdID'] != 0)]
 
-    # Ensure text columns exist and are strings
-    for col in ["Name", "Brand", "Category", "Tags", "Description"]:
-        if col not in df.columns:
-            df[col] = ""
-        df[col] = df[col].fillna("").astype(str)
+    data['ID'] = data['ID'].astype(int)
+    data['ProdID'] = data['ProdID'].astype(int)
 
-    return df.reset_index(drop=True)
+    # Clean Rating (OPTIONAL FIX #1)
+    data['Rating'] = pd.to_numeric(data['Rating'], errors='coerce').fillna(0)
+    data = data[data['Rating'] > 0]
+
+    # ReviewCount
+    data['ReviewCount'] = pd.to_numeric(
+        data['ReviewCount'], errors='coerce'
+    ).fillna(0).astype(int)
+
+    # Drop unwanted column
+    if 'Unnamed: 0' in data.columns:
+        data.drop(columns=['Unnamed: 0'], inplace=True)
+
+    # Fill text columns
+    for col in ['Category', 'Brand', 'Description', 'Tags']:
+        if col in data.columns:
+            data[col] = data[col].fillna('')
+
+    # Enrich Tags (OPTIONAL FIX #2)
+    data['Tags'] = (
+        data['Tags'] + ' ' +
+        data['Brand'] + ' ' +
+        data['Category'] + ' ' +
+        data['Description']
+    )
+
+    # Fix ImageURL
+    if 'ImageURL' in data.columns:
+        data['ImageURL'] = (
+            data['ImageURL']
+            .astype(str)
+            .str.split('|')
+            .str[0]
+        )
+
+    return data.reset_index(drop=True)

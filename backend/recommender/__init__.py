@@ -9,5 +9,5 @@ __all__ = [
     "content_based_recommendation",
     "get_top_rated_items",
     "collaborative_filtering_recommendations",
-    "hybrid_recommendation",
+    "hybrid_recommendation"
 ]

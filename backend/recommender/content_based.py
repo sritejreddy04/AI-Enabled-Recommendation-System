@@ -1,40 +1,25 @@
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
-def content_based_recommendation(
-    data: pd.DataFrame,
-    query: str,
-    top_n: int = 12
-) -> pd.DataFrame:
-
-    if not query:
-        return pd.DataFrame()
-
+def content_based_recommendation(data: pd.DataFrame, query: str, top_n: int = 12):
     query = query.lower().strip()
 
-    combined_text = (
-        data["Name"] + " " +
-        data["Category"] + " " +
-        data["Tags"] + " " +
-        data["Description"]
-    ).str.lower()
+    results = data[
+        data["Name"].str.lower().str.contains(query, na=False)
+        | data["Category"].str.lower().str.contains(query, na=False)
+        | data["Tags"].str.lower().str.contains(query, na=False)
+    ]
 
-    # FIX: no regex warning
-    mask = combined_text.str.contains(query, regex=False, na=False)
-    matched = data[mask]
-
-    if matched.empty:
+    if results.empty:
         return pd.DataFrame()
 
-    vectorizer = TfidfVectorizer(stop_words="english")
-    tfidf_matrix = vectorizer.fit_transform(combined_text)
-
-    idx = matched.index[0]
-    similarity = cosine_similarity(
-        tfidf_matrix[idx], tfidf_matrix
-    ).flatten()
-
-    top_indices = similarity.argsort()[::-1][1:top_n + 1]
-
-    return data.iloc[top_indices].reset_index(drop=True)
+    return (
+        results.groupby(["Name", "Brand", "ImageURL"])
+        .agg(
+            Rating=("Rating", "mean"),
+            ReviewCount=("Rating", "count"),
+        )
+        .reset_index()
+        .sort_values(["Rating", "ReviewCount"], ascending=False)
+        .head(top_n)
+        .reset_index(drop=True)
+    )

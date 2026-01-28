@@ -1,24 +1,15 @@
 import pandas as pd
+from .content_based import content_based_recommendation
 from .collaborative_based import collaborative_filtering_recommendations
-from .rating_based import get_top_rated_items
 
 def hybrid_recommendation(
     data: pd.DataFrame,
+    item_name: str,
     user_id: int,
-    top_n: int = 12
-) -> pd.DataFrame:
+    top_n: int = 10
+):
+    cb = content_based_recommendation(data, item_name, top_n)
+    cf = collaborative_filtering_recommendations(data, user_id, top_n)
 
-    if user_id <= 0:
-        return get_top_rated_items(data, top_n)
-
-    collab = collaborative_filtering_recommendations(data, user_id, top_n)
-    popular = get_top_rated_items(data, top_n)
-
-    merged = (
-        pd.concat([collab, popular])
-        .drop_duplicates(subset="Name")
-        .head(top_n)
-        .reset_index(drop=True)
-    )
-
-    return merged
+    hybrid = pd.concat([cb, cf]).drop_duplicates(subset='Name')
+    return hybrid.head(top_n).reset_index(drop=True)
